@@ -7,9 +7,9 @@ body, html {
 
 /* 1. Apparence E-Ink (Sépia) */
 body {
-    background-color: #f9f6e9; 
+    background-color: #f9f6e9; /* Fond Sépia */
     color: #111; 
-    font-family: 'Literata', serif; 
+    font-family: 'Literata', serif; /* Police de liseuse */
     font-size: 1.15em;
     line-height: 1.55;
 }
@@ -38,11 +38,10 @@ body {
 }
 
 .import-button {
-    /* Style du bouton d'importation */
     display: inline-block;
     padding: 10px 20px;
     margin-top: 15px;
-    background-color: #e0d9c4; /* Fond légèrement plus foncé */
+    background-color: #e0d9c4;
     color: #111;
     border: 1px solid #a09a89;
     border-radius: 4px;
@@ -73,17 +72,11 @@ body {
 .book-cover {
     width: 100px;
     height: 150px;
-    background-color: #e0d9c4;
+    background-color: #e0d9c4; 
     margin: 0 auto 10px;
     box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);
-    font-size: 3em;
-    line-height: 150px;
-    font-weight: bold;
-    color: #444;
     border-radius: 3px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: block; 
 }
 
 .book-info {
@@ -110,6 +103,25 @@ body {
 #reader-container {
     padding: 20px;
     position: relative;
+    background-color: #f9f6e9; 
+}
+
+/* 🚨 INJECTION CSS POUR LE RENDU EPUB (iframe) 🚨 */
+/* Cible le corps de l'iframe générée par Epub.js */
+#epub-renderer iframe, 
+#epub-renderer iframe body {
+    background-color: #f9f6e9 !important; /* Force le fond sépia */
+    color: #111 !important;
+}
+
+/* Cible les paragraphes, titres pour une police cohérente */
+#epub-renderer iframe body,
+#epub-renderer iframe body * {
+    font-family: 'Literata', serif !important;
+    line-height: 1.6 !important;
+    font-size: 1.1em !important;
+    /* Nettoyage des marges par défaut des EPUB */
+    margin: 0.5em 0 !important; 
 }
 
 /* Goutte (Drop Cap) */
@@ -133,6 +145,7 @@ body {
     justify-content: space-between;
     padding: 10px 20px;
     box-sizing: border-box;
+    z-index: 10; 
 }
 .top-bar { top: 0; }
 .bottom-bar { bottom: 0; }
@@ -146,6 +159,7 @@ body {
 /* Correction pour les rendus PDF/TXT */
 #static-renderer {
     padding: 20px !important;
+    background-color: #f9f6e9; /* Fond sépia pour les autres rendus */
 }
 #static-renderer canvas {
     display: block;

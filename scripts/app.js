@@ -84,8 +84,7 @@ function loadBooksFromDB() {
             const progressStatus = book.last_read_cfi ? 'Lecture en cours' : 'Nouveau';
 
             listItem.innerHTML = `
-                <div class="book-cover">${typeLabel}</div>
-                <div class="book-info">
+                <div class="book-cover"></div> <div class="book-info">
                     <p class="book-title" title="${book.title}">${displayTitle}</p>
                     <p class="book-metadata">Format: ${typeLabel}</p>
                     <p class="book-metadata">Statut: <strong>${progressStatus}</strong></p>
@@ -126,18 +125,21 @@ function openBook(bookId) {
         const blob = new Blob([book.data], { type: book.type });
         const bookUrl = URL.createObjectURL(blob);
         
-        if (book.type.includes('epub')) {
-            epubRenderer.style.display = 'block';
-            renderEpub(bookUrl, book.last_read_cfi);
-            
-        } else if (book.type.includes('pdf')) {
-            staticRenderer.style.display = 'block';
-            renderPdf(book.data, staticRenderer, book.last_read_cfi);
+        // Ajout d'une petite temporisation pour s'assurer que le DOM est prêt
+        setTimeout(() => {
+            if (book.type.includes('epub')) {
+                epubRenderer.style.display = 'block';
+                renderEpub(bookUrl, book.last_read_cfi);
+                
+            } else if (book.type.includes('pdf')) {
+                staticRenderer.style.display = 'block';
+                renderPdf(book.data, staticRenderer, book.last_read_cfi);
 
-        } else if (book.type.includes('text/plain')) {
-            staticRenderer.style.display = 'block';
-            renderTxt(book.data, staticRenderer, book.last_read_cfi);
-        }
+            } else if (book.type.includes('text/plain')) {
+                staticRenderer.style.display = 'block';
+                renderTxt(book.data, staticRenderer, book.last_read_cfi);
+            }
+        }, 100); 
     };
 }
 
@@ -145,9 +147,19 @@ function openBook(bookId) {
 function renderEpub(bookUrl, cfi) {
     const currentBook = ePub(bookUrl);
     currentRendition = currentBook.renderTo("epub-renderer", {
-        width: "100%", height: "100%", flow: "paginated"
+        width: "100%", 
+        height: "100%", 
+        flow: "paginated",
+        ignoreTainted: true,
+        // AJOUT CRITIQUE V11: Injecter le CSS principal pour le style E-Ink
+        stylesheet: "styles/main.css" 
     });
     
+    // Débogage: Afficher si le rendu est prêt
+    currentRendition.on('rendered', () => {
+        console.log('Rendu EPUB réussi.');
+    });
+
     if (cfi) {
          currentRendition.display(cfi);
     } else {
@@ -195,7 +207,6 @@ function renderPdf(arrayBuffer, container, scrollPosition) {
     currentRendition = null;
     container.onscroll = null;
     
-    // pdfjsLib est exporté par pdf.min.mjs (chargé dans index.html)
     if (typeof pdfjsLib === 'undefined') {
         container.innerHTML = '<p>Erreur: PDF.js non chargé correctement. Vérifiez le CDN.</p>';
         return;
@@ -251,7 +262,6 @@ function setupSwipes() {
         let touchStartX = 0;
         const SWIPE_THRESHOLD = 50;
         
-        // Nettoyage des anciens écouteurs (très important)
         contentArea.removeEventListener('touchstart', handleTouchStart);
         contentArea.removeEventListener('touchend', handleTouchEnd);
 
@@ -311,45 +321,23 @@ function debounce(func, timeout = 300) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Enregistrement du Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        // CORRECTION CRITIQUE DU CHEMIN RELATIF POUR GITHUB PAGES
-        navigator.serviceWorker.register('sw.js').catch(error => { 
-          console.error('Échec de l\'enregistrement du Service Worker:', error);
-        });
-      });
-    }
-
-    // 2. Initialisation IndexedDB
+    
+    // 1. Initialisation IndexedDB
     await initializeIndexedDB();
     
-    // 3. Logique d'importation de fichiers (Bouton et Glisser-Déposer)
+    // 2. Logique d'importation de fichiers (Bouton)
     const fileInput = document.getElementById('file-input-id'); 
 
     // Écouteur pour le bouton d'importation visible
     fileInput.addEventListener('change', (event) => {
-        handleFileImport(event.target.files);
+        const files = event.target.files;
+        if (files.length > 0) {
+            handleFileImport(files);
+            // Réinitialiser le champ après l'importation
+            event.target.value = null; 
+        }
     });
 
-    // Écouteur pour le glisser-déposer 
-    const importZone = document.getElementById('import-zone');
-    
-    importZone.addEventListener('dragover', (e) => {
-        e.preventDefault(); 
-        importZone.style.backgroundColor = '#e0d9c4'; 
-    });
-    
-    importZone.addEventListener('dragleave', () => {
-        importZone.style.backgroundColor = '#f7f3e8';
-    });
-
-    importZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        importZone.style.backgroundColor = '#f7f3e8';
-        handleFileImport(e.dataTransfer.files);
-    });
-
-    // 4. Charger les livres existants
+    // 3. Charger les livres existants
     loadBooksFromDB();
 });
