@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <link rel="manifest" href="/manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Lecteur E-Ink PWA</title>
+    
+    <link rel="manifest" href="manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes"> 
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#111111">
-    <link rel="stylesheet" href="/styles/main.css">
+    
+    <link rel="stylesheet" href="styles/main.css">
 </head>
 <body>
     
@@ -26,11 +31,23 @@
     </div>
     
     <div id="reader-container" style="display: none;">
-       </div>
+        <header class="top-bar">
+            <span class="time">10:37</span>
+            <button class="search-icon" aria-label="Rechercher">🔍</button>
+            <button class="menu-icon" aria-label="Retour à la bibliothèque" onclick="window.location.reload()">📚</button>
+        </header>
+
+        <div id="epub-renderer" style="width: 100%; height: 95%;"></div>
+        <div id="static-renderer" style="width: 100%; height: 95%; overflow-y: scroll; padding: 20px;"></div>
+        
+        <footer class="bottom-bar">
+            <span class="page-number">--</span>
+        </footer>
+    </div>
     
     <script src="https://unpkg.com/epubjs/dist/epub.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script> 
 
-    <script src="/scripts/app.js"></script>
+    <script src="scripts/app.js"></script>
 </body>
 </html>
