@@ -32,11 +32,18 @@ function saveBookToDB(bookData, title, type) {
     transaction.oncomplete = loadBooksFromDB;
 }
 
+// CORRECTION CRITIQUE V15: Gestion d'erreur renforcée pour l'importation
 function handleFileImport(files) {
     if (!files || files.length === 0) return;
 
     for (const file of files) {
         const reader = new FileReader();
+        
+        reader.onerror = (e) => {
+            // Affiche une erreur si la lecture du fichier échoue
+            alert(`Erreur de lecture du fichier ${file.name}: ${e.target.error}`);
+        };
+
         reader.onload = (e) => {
             const arrayBuffer = e.target.result;
             let title = file.name.split('.').slice(0, -1).join('.');
@@ -46,20 +53,26 @@ function handleFileImport(files) {
             if (type.includes('epub')) {
                 try {
                     const book = ePub(arrayBuffer);
+                    
+                    // Utilisation d'un timeout ou d'une promesse pour attendre les métadonnées
                     book.loaded.metadata.then(metadata => {
                         title = metadata.title || title;
                         saveBookToDB(arrayBuffer, title, type);
                     }).catch(() => {
+                        // Si la récupération du titre échoue, on utilise le nom de fichier par défaut
                         saveBookToDB(arrayBuffer, title, type);
                     });
                 } catch (error) {
-                    console.error("Erreur lors de la lecture de l'EPUB:", error);
+                    console.error("Erreur lors de la lecture de l'EPUB (initialisation EpubJS):", error);
+                    // Si EpubJS échoue à s'initialiser, on sauvegarde quand même le fichier
                     saveBookToDB(arrayBuffer, title, type);
                 }
             } else {
+                // Pour PDF/TXT, sauvegarde directe
                 saveBookToDB(arrayBuffer, title, type);
             }
         };
+        // Lit le fichier en tant qu'ArrayBuffer
         reader.readAsArrayBuffer(file);
     }
 }
@@ -161,4 +174,218 @@ function openBook(bookId) {
                 
             } else if (book.type.includes('pdf')) {
                 staticRenderer.style.display = 'block';
-                renderPdf(
+                renderPdf(book.data, staticRenderer, book.last_read_cfi);
+
+            } else if (book.type.includes('text/plain')) {
+                staticRenderer.style.display = 'block';
+                renderTxt(book.data, staticRenderer, book.last_read_cfi);
+            }
+        }, 100); 
+    };
+}
+
+// Fonction de rendu EPUB
+function renderEpub(bookData, bookType, cfi) { 
+    // Initialisation avec l'ArrayBuffer directement (V13)
+    const currentBook = ePub(bookData, { type: 'binary', mimeType: bookType }); 
+    
+    // Écouteur d'erreur spécifique du moteur Epub.js
+    currentBook.on('bookError', (error) => {
+        displayReaderError("Erreur interne EPUB: " + error.message + " (Vérifiez le fichier)");
+    });
+    
+    currentRendition = currentBook.renderTo("epub-renderer", {
+        width: "100%", 
+        height: "100%", 
+        flow: "paginated",
+        ignoreTainted: true,
+        // Injection du CSS principal pour le style E-Ink
+        stylesheet: "styles/main.css" 
+    });
+    
+    // Débogage: Afficher si le rendu est prêt
+    currentRendition.on('rendered', () => {
+        console.log('Rendu EPUB réussi.');
+    });
+
+    if (cfi) {
+         currentRendition.display(cfi);
+    } else {
+         currentRendition.display();
+    }
+
+    setupSwipes(); 
+    setupSearch(currentBook); 
+
+    currentRendition.on("relocated", (location) => {
+        const newCfi = location.start.cfi;
+        const pageNumber = location.start.displayed.page || '...';
+        document.querySelector('.page-number').textContent = pageNumber;
+        saveProgression(newCfi);
+    });
+}
+
+// Fonction de rendu TXT
+function renderTxt(arrayBuffer, container, scrollPosition) {
+    currentRendition = null; 
+    const decoder = new TextDecoder('utf-8');
+    const text = decoder.decode(arrayBuffer);
+    
+    const pre = document.createElement('pre');
+    pre.textContent = text;
+    pre.style.whiteSpace = 'pre-wrap';
+    pre.style.fontFamily = 'Literata, serif';
+    pre.style.fontSize = '1em';
+    
+    container.appendChild(pre);
+    
+    if (scrollPosition) {
+        container.scrollTop = parseInt(scrollPosition);
+    }
+    
+    container.onscroll = debounce(() => {
+        saveProgression(container.scrollTop);
+    }, 500);
+    
+    document.querySelector('.page-number').textContent = 'TXT';
+}
+
+// Fonction de rendu PDF
+function renderPdf(arrayBuffer, container, scrollPosition) {
+    currentRendition = null;
+    container.onscroll = null;
+    
+    if (typeof pdfjsLib === 'undefined') {
+        container.innerHTML = '<p>Erreur: PDF.js non chargé correctement. Vérifiez le CDN.</p>';
+        return;
+    }
+
+    const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+
+    loadingTask.promise.then(pdf => {
+        container.innerHTML = '';
+        const numPages = pdf.numPages;
+        
+        const renderPage = (pageNum) => {
+            if (pageNum > numPages) return;
+            
+            pdf.getPage(pageNum).then(page => {
+                const viewport = page.getViewport({ scale: 1.5 });
+                const canvas = document.createElement('canvas');
+                const canvasContext = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                page.render({ canvasContext, viewport }).promise.then(() => {
+                    container.appendChild(canvas);
+                    document.querySelector('.page-number').textContent = `${pageNum}/${numPages}`;
+                    renderPage(pageNum + 1);
+                });
+            });
+        };
+        
+        renderPage(1);
+
+    }).catch(error => {
+        container.innerHTML = `<p>Erreur lors du rendu PDF: ${error}</p>`;
+        console.error("PDF Rendu Erreur:", error);
+    });
+}
+
+function saveProgression(position) {
+    const transaction = db.transaction(['books'], 'readwrite');
+    const store = transaction.objectStore('books');
+    const request = store.get(currentBookId);
+
+    request.onsuccess = (e) => {
+        const book = e.target.result;
+        book.last_read_cfi = position;
+        store.put(book);
+    };
+}
+
+function setupSwipes() {
+    if (currentBookType.includes('epub')) {
+        const contentArea = document.getElementById('epub-renderer');
+        let touchStartX = 0;
+        const SWIPE_THRESHOLD = 50;
+        
+        contentArea.removeEventListener('touchstart', handleTouchStart);
+        contentArea.removeEventListener('touchend', handleTouchEnd);
+
+        contentArea.addEventListener('touchstart', handleTouchStart);
+        contentArea.addEventListener('touchend', handleTouchEnd);
+        
+        function handleTouchStart(e) {
+             touchStartX = e.touches[0].clientX;
+        }
+
+        function handleTouchEnd(e) {
+            const touchEndX = e.changedTouches[0].clientX;
+            const deltaX = touchEndX - touchStartX;
+
+            if (Math.abs(deltaX) > SWIPE_THRESHOLD && currentRendition) {
+                if (deltaX < 0) {
+                    currentRendition.next(); 
+                } else {
+                    currentRendition.prev(); 
+                }
+                e.preventDefault();
+            }
+        }
+    }
+}
+
+function setupSearch(currentBook) {
+    document.querySelector('.search-icon').addEventListener('click', () => {
+        if (currentBookType.includes('epub')) {
+            const query = prompt("Terme à rechercher dans l'EPUB :");
+            if (query) {
+                currentRendition.annotations.removeByType("highlight");
+                
+                currentBook.rendition.search(query).then(results => {
+                    if (results.length > 0) {
+                        results.forEach(result => {
+                            currentRendition.annotations.highlight(result.cfi, {}, null, "highlight");
+                        });
+                        currentRendition.display(results[0].cfi);
+                    } else {
+                        alert("Aucun résultat trouvé.");
+                    }
+                });
+            }
+        } else {
+            alert("La fonction de recherche avancée est disponible uniquement pour les EPUB.");
+        }
+    });
+}
+
+function debounce(func, timeout = 300) {
+    let timer;
+    return (...args) => {
+        clearTimeout(timer);
+        timer = setTimeout(() => { func.apply(this, args); }, timeout);
+    };
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    
+    // 1. Initialisation IndexedDB
+    await initializeIndexedDB();
+    
+    // 2. Logique d'importation de fichiers (Bouton)
+    const fileInput = document.getElementById('file-input-id'); 
+
+    // Écouteur pour le bouton d'importation visible
+    fileInput.addEventListener('change', (event) => {
+        const files = event.target.files;
+        if (files.length > 0) {
+            handleFileImport(files);
+            // Réinitialiser le champ après l'importation
+            event.target.value = null; 
+        }
+    });
+
+    // 3. Charger les livres existants
+    loadBooksFromDB();
+});
