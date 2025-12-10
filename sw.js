@@ -1,4 +1,5 @@
-const CACHE_NAME = 'e-reader-cache-v1';
+const CACHE_NAME = 'e-reader-cache-v3'; // CHANGEMENT DE VERSION
+
 const urlsToCache = [
   '/',
   '/index.html',

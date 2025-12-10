@@ -1,6 +1,27 @@
-/* ... (Styles existants) ... */
+/* Réinitialisation de base */
+body, html {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
 
-/* Styles de la Bibliothèque */
+/* 1. Apparence E-Ink (Sépia) */
+body {
+    background-color: #f9f6e9; 
+    color: #111; 
+    font-family: 'Literata', serif; 
+    font-size: 1.15em;
+    line-height: 1.55;
+}
+
+/* Conteneurs de Vues */
+#library-view, #reader-container {
+    height: 100vh;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+/* 2. Styles de la Bibliothèque */
 #library-view {
     padding: 20px;
     overflow-y: auto;
@@ -31,14 +52,40 @@
 }
 
 .import-button:hover {
-    background-color: #d1c8b3; /* Effet hover subtil */
+    background-color: #d1c8b3; 
 }
 
 #book-list {
-    /* ... (Styles inchangés) ... */
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: flex-start;
 }
 
-/* Styles pour les informations sur le livre */
+.book-item {
+    text-align: center;
+    cursor: pointer;
+    width: 150px; 
+}
+
+.book-cover {
+    width: 100px;
+    height: 150px;
+    background-color: #e0d9c4;
+    margin: 0 auto 10px;
+    box-shadow: 3px 3px 5px rgba(0, 0, 0, 0.2);
+    font-size: 3em;
+    line-height: 150px;
+    font-weight: bold;
+    color: #444;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .book-info {
     text-align: left;
     padding: 5px;
@@ -58,4 +105,52 @@
     color: #555;
     margin: 0;
 }
-/* ... (Fin des styles) ... */
+
+/* 3. Styles du Lecteur */
+#reader-container {
+    padding: 20px;
+    position: relative;
+}
+
+/* Goutte (Drop Cap) */
+.first-paragraph-drop-cap::first-letter {
+    float: left;
+    margin-right: 0.1em;
+    font-size: 3em;
+    line-height: 1;
+    font-weight: bold;
+    color: #000;
+}
+
+/* Barres d'info (discrètes) */
+.top-bar, .bottom-bar {
+    position: absolute;
+    width: 100%;
+    left: 0;
+    font-size: 0.7em;
+    color: #555;
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 20px;
+    box-sizing: border-box;
+}
+.top-bar { top: 0; }
+.bottom-bar { bottom: 0; }
+
+/* Surlignage de la Recherche */
+.highlight {
+    background-color: #fce8a6 !important; 
+    padding: 2px 0;
+}
+
+/* Correction pour les rendus PDF/TXT */
+#static-renderer {
+    padding: 20px !important;
+}
+#static-renderer canvas {
+    display: block;
+    margin: 20px auto;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    max-width: 100%;
+    height: auto;
+}
