@@ -7,9 +7,9 @@ body, html {
 
 /* 1. Apparence E-Ink (Sépia) */
 body {
-    background-color: #f9f6e9; /* Fond Sépia */
+    background-color: #f9f6e9; /* Fond Sépia (Application Générale) */
     color: #111; 
-    font-family: 'Literata', serif; /* Police de liseuse */
+    font-family: 'Literata', serif; /* Police de liseuse (Application Générale) */
     font-size: 1.15em;
     line-height: 1.55;
 }
@@ -106,32 +106,11 @@ body {
     background-color: #f9f6e9; 
 }
 
-/* 🚨 INJECTION CSS POUR LE RENDU EPUB (iframe) 🚨 */
-/* Cible le corps de l'iframe générée par Epub.js */
-#epub-renderer iframe, 
-#epub-renderer iframe body {
-    background-color: #f9f6e9 !important; /* Force le fond sépia */
-    color: #111 !important;
-}
+/* 🚨 CORRECTION V14 : Styles simplifiés pour ne pas bloquer le rendu interne 🚨 */
 
-/* Cible les paragraphes, titres pour une police cohérente */
-#epub-renderer iframe body,
-#epub-renderer iframe body * {
-    font-family: 'Literata', serif !important;
-    line-height: 1.6 !important;
-    font-size: 1.1em !important;
-    /* Nettoyage des marges par défaut des EPUB */
-    margin: 0.5em 0 !important; 
-}
-
-/* Goutte (Drop Cap) */
-.first-paragraph-drop-cap::first-letter {
-    float: left;
-    margin-right: 0.1em;
-    font-size: 3em;
-    line-height: 1;
-    font-weight: bold;
-    color: #000;
+/* Cible l'iframe du rendu EPUB (uniquement le fond) */
+#epub-renderer iframe {
+    background-color: #f9f6e9 !important;
 }
 
 /* Barres d'info (discrètes) */
@@ -159,7 +138,7 @@ body {
 /* Correction pour les rendus PDF/TXT */
 #static-renderer {
     padding: 20px !important;
-    background-color: #f9f6e9; /* Fond sépia pour les autres rendus */
+    background-color: #f9f6e9; 
 }
 #static-renderer canvas {
     display: block;
