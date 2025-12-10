@@ -84,7 +84,8 @@ function loadBooksFromDB() {
             const progressStatus = book.last_read_cfi ? 'Lecture en cours' : 'Nouveau';
 
             listItem.innerHTML = `
-                <div class="book-cover"></div> <div class="book-info">
+                <div class="book-cover"></div> 
+                <div class="book-info">
                     <p class="book-title" title="${book.title}">${displayTitle}</p>
                     <p class="book-metadata">Format: ${typeLabel}</p>
                     <p class="book-metadata">Statut: <strong>${progressStatus}</strong></p>
@@ -102,6 +103,24 @@ function loadBooksFromDB() {
 let currentRendition = null;
 let currentBookId;
 let currentBookType;
+
+/** NOUVELLE FONCTION: Affiche une erreur visible pour l'utilisateur **/
+function displayReaderError(message) {
+    const readerContainer = document.getElementById('reader-container');
+    readerContainer.innerHTML = `
+        <header class="top-bar">
+            <button class="menu-icon" onclick="window.location.reload()">📚 Retour à la bibliothèque</button>
+        </header>
+        <div style="padding: 50px; text-align: center; color: #a00; background-color: #ffe0e0; border: 1px solid #a00; margin: 50px;">
+            <h2>Erreur Critique de Rendu</h2>
+            <p><strong>Détail:</strong> ${message}</p>
+            <p>Le livre n'a pas pu être affiché. Veuillez vérifier que le fichier EPUB/PDF n'est pas corrompu ou protégé par DRM.</p>
+        </div>
+    `;
+    readerContainer.style.display = 'block';
+    document.getElementById('library-view').style.display = 'none';
+}
+
 
 function openBook(bookId) {
     currentBookId = bookId;
@@ -129,7 +148,12 @@ function openBook(bookId) {
         setTimeout(() => {
             if (book.type.includes('epub')) {
                 epubRenderer.style.display = 'block';
-                renderEpub(bookUrl, book.last_read_cfi);
+                // Utilisation du try/catch pour attraper les erreurs critiques d'initialisation
+                try {
+                    renderEpub(bookUrl, book.last_read_cfi);
+                } catch (e) {
+                    displayReaderError("Erreur d'initialisation du moteur EPUB: " + e.message);
+                }
                 
             } else if (book.type.includes('pdf')) {
                 staticRenderer.style.display = 'block';
@@ -146,12 +170,18 @@ function openBook(bookId) {
 // Fonction de rendu EPUB
 function renderEpub(bookUrl, cfi) {
     const currentBook = ePub(bookUrl);
+    
+    // Écouteur d'erreur spécifique du moteur Epub.js
+    currentBook.on('bookError', (error) => {
+        displayReaderError("Erreur interne EPUB: " + error.message);
+    });
+    
     currentRendition = currentBook.renderTo("epub-renderer", {
         width: "100%", 
         height: "100%", 
         flow: "paginated",
         ignoreTainted: true,
-        // AJOUT CRITIQUE V11: Injecter le CSS principal pour le style E-Ink
+        // Injection du CSS principal pour le style E-Ink
         stylesheet: "styles/main.css" 
     });
     
