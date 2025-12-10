@@ -1,15 +1,10 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Lecteur E-Ink PWA</title>
-    
     <link rel="manifest" href="/manifest.json">
     <meta name="apple-mobile-web-app-capable" content="yes"> 
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#111111">
-    
     <link rel="stylesheet" href="/styles/main.css">
 </head>
 <body>
@@ -18,8 +13,12 @@
         <h1>Ma Bibliothèque PWA</h1>
         
         <div id="import-zone">
-            <input type="file" id="file-input" accept=".epub, .pdf, .txt" multiple style="position: absolute; width: 100%; height: 100%; opacity: 0; cursor: pointer;">
-            <p>Glissez-déposez vos EPUB, PDF, ou TXT ici ou **cliquez pour importer**.</p>
+            <p>Glissez-déposez vos fichiers ici, ou utilisez le bouton :</p>
+            
+            <label for="file-input-visible" class="import-button">
+                Importer un livre (EPUB, PDF, TXT)
+            </label>
+            <input type="file" id="file-input-visible" accept=".epub, .pdf, .txt" multiple style="display: none;">
         </div>
         
         <ul id="book-list">
@@ -27,20 +26,7 @@
     </div>
     
     <div id="reader-container" style="display: none;">
-        <header class="top-bar">
-            <span class="time">10:37</span>
-            <button class="search-icon" aria-label="Rechercher">🔍</button>
-            <button class="menu-icon" aria-label="Retour à la bibliothèque" onclick="window.location.reload()">📚</button>
-        </header>
-
-        <div id="epub-renderer" style="width: 100%; height: 95%;"></div>
-
-        <div id="static-renderer" style="width: 100%; height: 95%; overflow-y: scroll; padding: 20px;"></div>
-        
-        <footer class="bottom-bar">
-            <span class="page-number">--</span>
-        </footer>
-    </div>
+       </div>
     
     <script src="https://unpkg.com/epubjs/dist/epub.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.mjs" type="module"></script> 
